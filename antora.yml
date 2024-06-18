@@ -1,0 +1,11 @@
+name: chuanbao-blog
+title: Chuanbao's Tech Blog
+version: 1.0.0
+start_page: angular-signal-guide.adoc
+
+asciidoc:
+  attributes:
+    source-language: asciidoc@
+
+nav:
+  - modules/ROOT/nav.adoc
