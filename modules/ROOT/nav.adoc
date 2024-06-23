@@ -1,1 +1,3 @@
-* xref:angular-signal-guide.adoc[]
+* Angular
+** xref:angular-signal-guide.adoc[]
+** xref:angular-signal-input-output.adoc[]

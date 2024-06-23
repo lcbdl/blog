@@ -1,0 +1,54 @@
+= Angular Signal Input and Output
+
+== Signal Inputs of a Component
+
+We can use signal type of inputs for a component.  The parent passes a signal value to the child component.  The child component will change during when the signal changes.
+
+Signal inputs are readonly, you can't modify it by `set()` or `update()`.
+
+Here is the code create signal inputs
+
+[source TypeScript]
+----
+import {Component, input} from '@angular/core';
+
+@Component({...})
+export class Party {
+  // create an optional input
+  when = input<string>();
+  // create an input with default value
+  where = input<string>("Lakeside Hotel");
+  // create a required input
+  host = input.required<string>();
+}
+----
+=== Signal input alias
+You can assign an alias to an input with this code `name = input('John', {alias: 'nickname'})`.  This allows 
+
+=== Transform input value
+
+
+
+== Model Inputs of a Component
+
+Model inputs give a Component two-way binding ability. We can use `[(myProperty)]` to read and write a property of a component.
+
+The Signal Model inputs are writable.  You can call `set()` and `update()`.
+
+[source TypeScript]
+----
+import {Component, model, input} from '@angular/core';
+
+@Component({...})
+export class Party {
+  // a standard property
+  where = input<string>("Lakeside Hotel");
+  // a model property
+  canceled = model(false);
+
+  toggle() {
+    // While standard inputs are read-only, you can write directly to model inputs.
+    this.canceled.set(!this.canceled());
+  }
+}
+----
