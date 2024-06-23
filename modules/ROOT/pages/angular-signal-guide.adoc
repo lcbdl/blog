@@ -1,91 +1,228 @@
 = Angular Signal Explained
-Chuanbao Lu
-June 19, 2024: AsciiDoc article template
-:toc:
+Chuanbao Lu <chuanbao.lu@gmail.com>
+1.0, June 19, 2024: A complete guide of Angular Signal
 :icons: font
-:url-quickref: 
 
-Content entered directly below the header but before the first section heading is called the preamble.
+== Signals Basics
+Angular Signal was introduced in Angular 17. Angular uses signals established a new way of change detection.  It uses the *observable design pattern*. When one code changes the value of a signal, other code that uses the signal will get notified and  we can do something in response to the new value. That's the main advantage to use signals. 
 
-== First level heading
 
-This is a paragraph with a *bold* word and an _italicized_ word.
+.The key concepts in signal:
+. Writable signals: created by calling the `signal()` function with a initial value. 
+. Computed signals: computed signals are read-only signals that derive their value from other signals.
+. Effect: we can use `effect()` to perform some sort of side effect when the signal value changes without modifying the signal.
+. Read signal value: need to use `yourSignalVarName()`
+. Modify signal: need to use `yourSignalVar.set()` or `yourSignalVar.update()` to modify signal value.
 
-.Image caption
-image::image-file-name.png[I am the image alt text.]
+In the following example,
 
-This is another paragraph.footnote:[I am footnote text and will be displayed at the bottom of the article.]
+* We create a WritableSignal signal "circleRadius" using `signal()`.
+* We create a computed signal "circleArea" using `computed()`.
+* We display them on the UI using `circleRadius()` and `circleArea()`. 
+* The "Increase Radius" button will increase the value of the signal by calling `update()` function.  
+* The "Reset" button reset the value of the signal to 0 by calling `set()` function. 
+* We use `effect()` to log the circle radius when the signal value changes.
 
-=== Second level heading
-
-.Unordered list title
-* list item 1
-** nested list item
-*** nested nested list item 1
-*** nested nested list item 2
-* list item 2
-
-This is a paragraph.
-
-.Example block title
-====
-Content in an example block is subject to normal substitutions.
-====
-
-.Sidebar title
-****
-Sidebars contain aside text and are subject to normal substitutions.
-****
-
-==== Third level heading
-
-[#id-for-listing-block]
-.Listing block title
+[code TypeScript]
 ----
-Content in a listing block is subject to verbatim substitutions.
-Listing block content is commonly used to preserve code input.
+import { Component, computed, signal, effect } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+
+@Component({
+  selector: 'app-signal-demo-1',
+  standalone: true,
+  imports: [MatButtonModule],
+  template: `
+    <p>Signal Demo 2</p>
+    <!-- display signal value -->
+    <p>Circle Radius: {{ circleRadius() }} cm</p>
+    <!-- display computed signal value -->
+    <p>Circle area: {{ circleArea() }} square cm</p>
+    <button mat-flat-button color="primary" (click)="increase()">
+      Increase Radius
+    </button>
+    <button mat-flat-button color="secondary" (click)="reset()">Reset</button>
+  `,
+  styles: [],
+})
+export class SignalDemo1Component {
+  // create a new signal variable
+  circleRadius = signal<number>(0);
+  // create a computed signal variable
+  circleArea = computed<number>(
+    () => Math.PI * Math.pow(this.circleRadius(), 2)
+  );
+
+  constructor() {
+    effect(() => {
+      // use effect to log signal value when it changes
+      console.log(`circleRadius changed to ${this.circleRadius()}`);
+    });
+  }
+
+  increase() {
+    // Increase the signal value
+    this.circleRadius.update((v) => v + 1);
+  }
+
+  reset() {
+    // Set signal value to 0
+    this.circleRadius.set(0);
+  }
+}
 ----
 
-===== Fourth level heading
+.Signal sample 1 running result
+image::signal-sample1.png[signal sample 1 running result]
 
-.Table title
-|===
-|Column heading 1 |Column heading 2
+== Signal for Objects or Arrays
 
-|Column 1, row 1
-|Column 2, row 1
+Angular needs to trigger the notification when the signal value changes. It has no issue with primitive values.  But for object or array value, it won't consider the value changed if we just mutated the content of the object or array. 
 
-|Column 1, row 2
-|Column 2, row 2
-|===
+In the follow code, we manually mutate the john's age in function `mutate1()`.  We can see that John's age changed, but the computed signal `dad().age` does't change on the UI.  That's because it bypasses the signal system. The  manually change of an object's property won't trigger the notification.  So, we should always use the Signal API `set()` or `update()` to modify signals.
 
-====== Fifth level heading
+[source TypeScript]
+----
+import { CommonModule } from '@angular/common';
+import { Component, computed, signal } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 
-[quote, firstname lastname, movie title]
-____
-I am a block quote or a prose excerpt.
-I am subject to normal substitutions.
-____
+@Component({
+  selector: 'app-signal-demo-2',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule],
+  template: `
+    <p>Signal Demo 2</p>
+    <!-- display signal value -->
+    <div>{{ john().name }}'s age: {{ john().age }}</div>
+    <div>{{ dad().name }}'s age: {{ dad().age }}</div>
+    <br />
+    <div>
+      <button mat-flat-button color="primary" (click)="mutate1()">
+        Modify John's age manually
+      </button>
+    </div>
+    <br />
+    <div>
+      <button mat-flat-button color="primary" (click)="mutate2()">
+        Modify John's age with update()
+      </button>
+    </div>
+  `,
+  styles: [],
+})
+export class SignalDemo2Component {
+  // create a new signal variable
+  john = signal({ name: 'John', age: 10 });
 
-[verse, firstname lastname, poem title and more]
-____
-I am a verse block.
-  Indents and endlines are preserved in verse blocks.
-____
+  dad = computed(() => ({ name: 'Dad', age: this.john().age + 25 }));
 
-== First level heading
+  mutate1() {
+    // Increase the signal value, but it won't trigger notification.
+    this.john().age++;
+  }
 
-TIP: There are five admonition labels: Tip, Note, Important, Caution and Warning.
+  mutate2() {
+    // Increase the signal value using update()
+    this.john.update((value) => ({ ...value, age: value.age + 1 }));
+  }
+}
+----
 
-// I am a comment and won't be rendered.
+== Signal Equation
 
-. ordered list item
-.. nested ordered list item
-. ordered list item
+Angular signal API by default uses "===" to check if the signal value changed. Variables of object value or array hold the reference of memory.  The reference won't change if we change the properties of them. So even we use the `set()` or `update()`, the notification won't happen if we mutate the properties of the object or items of the array.  It's a wrong way to use `update()` in the following example:
+[source TypeScript]
+----
+  // This won't work because the reference doesn't change
+  this.john.update((value) => {
+    value.age += 1; 
+    return value;
+  });
+----
 
-The text at the end of this sentence is cross referenced to <<_third_level_heading,the third level heading>>
+The right solution is to use the spread operator `...` to create a new instance of the value.
 
-== First level heading
+[source TypeScript]
+----
+this.john.update((value) => ({ ...value, age: value.age + 1 }));
+----
 
-This is a link to the https://docs.asciidoctor.org/home/[Asciidoctor documentation].
-This is an attribute reference {url-quickref}[that links this text to the AsciiDoc Syntax Quick Reference].
+On the other hand, the following code will always trigger the notification even we set the signal with same value.
+
+[source TypeScript]
+----
+  // This will trigger the notification ever time it is called.
+  this.john.set({name: 'John', age: 10});
+----
+
+The solution for this case is to override the equality method when we create a signal like below:
+[source TypeScript]
+----
+john = signal(
+  {
+    name: 'John',
+    age: 10
+  },
+  {
+    equal: (a, b) => {
+      return a.name === b.name && a.age === b.age;
+    }
+  }
+);
+
+mutateJohnAge() {
+  // The notification won't trigger because the signal's equal method will return true
+  this.john.set({name: 'John', age: 10});
+}
+----
+
+== Convert Observable Response to Signal
+
+https://angular.dev/guide/signals/rxjs-interop[RxJS Interop] is a new API to convert Observable to Signal and vise versa.
+
+* toSignal: convert Observable to Signal.
+* toObservable: convert Signal to Observable.
+
+Here is the example of using `toSignal()`.  
+
+[source TypeScript]
+----
+  private http = inject(HttpClient);
+  // create a new signal from Observable.
+  family = toSignal(this.http.get<Person[]>('http://localhost:3000/family'), {
+    initialValue: [],
+  });
+
+  john = computed(() => this.family().find((p) => p.name === 'John')!);
+  dad = computed(() => this.family().find((p) => p.name === 'Dad')!);
+----
+
+`toSignal()` creates a read-only Signal.  You can't modify it. This is OK if you display the signal value only.  But it is a problem if you want to modify it.
+
+To resolve this problem, we can create a `WritableSignal` with the ready-only signal value. Here is an example: 
+[source TypeScript]
+----
+  private http = inject(HttpClient);
+  // create a new signal from Observable.
+  readOnlyFamily = toSignal(this.http.get<Person[]>('http://localhost:3000/family'), {
+    initialValue: [],
+  });
+
+  // create a signal of signal
+  family = computed(() => signal(this.readOnlyFamily()));
+
+  onModifyButtonClick() {
+    // modify the signal value
+    this.family().update(p => ({...p, age: 30}));
+  }
+----
+
+== Summary
+
+Angular Signal is a powerful feature, it
+
+* provides a easier way to handle lazy loading
+* is more understandable then observable + async pipe to program reactively
+* increases the performance by reducing unnecessary checks the component data and re-rendering.
+ 

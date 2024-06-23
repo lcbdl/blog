@@ -1,5 +1,5 @@
-name: chuanbao-blog
-title: Chuanbao's Tech Blog
+name: blog
+title: Chuanbao's Dev Blog
 version: 1.0.0
 start_page: angular-signal-guide.adoc
 
