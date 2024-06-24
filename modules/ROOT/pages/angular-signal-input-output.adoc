@@ -1,54 +1,255 @@
-= Angular Signal Input and Output
+= Angular Signal Input, Output, and Model
 
-== Signal Inputs of a Component
+Angular use `@Input()` annotation to define a property to allow the parent component passes a value to the child component. 
 
-We can use signal type of inputs for a component.  The parent passes a signal value to the child component.  The child component will change during when the signal changes.
+The `@Output()` annotation expose an event of the child component.  The parent component can specify a callback function to react when the event happens in the child component.
 
-Signal inputs are readonly, you can't modify it by `set()` or `update()`.
+Angular induced Signal type of input and output after the Signal API was introduced. Signal input and output has all features that regular Signal has. 
 
-Here is the code create signal inputs
+== Signal Inputs
+
+Here is a component that has a input property.
 
 [source TypeScript]
 ----
-import {Component, input} from '@angular/core';
-
-@Component({...})
-export class Party {
-  // create an optional input
-  when = input<string>();
-  // create an input with default value
-  where = input<string>("Lakeside Hotel");
-  // create a required input
-  host = input.required<string>();
+@Component({
+  template: `
+    <p>Regular Input Child Component</p>
+    <div>
+      Name: <b>{{ name }}</b>
+    </div>
+    <div>
+      Age: <b>{{ value }}</b>
+    </div>
+  `,
+})
+export class ChildComponent {
+  ngOnChanges() {
+    console.log('Name = ' + this.name);
+    console.log('Age = ' + this.age);
+  }
+  @Input()
+  age = 20;
+  @Input()
+  name = 'John';
 }
 ----
+
+There are 2 input properties, name and age. It also output the name and age in the console when name or age changes in the `ngOnChanges()` lifecycle method. But there is any issue, it will log both name and age either name or age changes. 
+
+Now, let change the name and age to Signal type inputs.
+
+[source TypeScript]
+----
+import { Component, effect, input } from '@angular/core';
+@Component({
+  template: `
+    <p>Signal Input Child Component</p>
+    <div>
+      Name: <b>{{ name() }}</b>
+    </div>
+    <div>
+      Age: <b>{{ age() }}</b>
+    </div>
+  `,
+})
+export class ChildComponent {
+  constructor() {
+    effect(() => {
+      console.log('Name = ' + this.name());
+    });
+    effect(() => {
+      console.log('Age = ' + this.age());
+    });
+  }
+ 
+  age = input(20);
+  
+  name = input('John');
+}
+----
+
+In the new code, we defined 2 signal inputs by calling `input()` function. We also log the value of name and age in 2 effect callbacks.  This will do the same work that the `ngOnChanges()` lifecycle callback does. But it will log name only when the name changes, and log age only when the age changes. 
+
 === Signal input alias
-You can assign an alias to an input with this code `name = input('John', {alias: 'nickname'})`.  This allows 
+
+You can assign an alias to an input with this code `name = input('John', {alias: 'nickname'})`.  So, you can use the alias "nickname" when you use the child component in the parent component template like this `<child-component [nickname]="childName()" />`.
 
 === Transform input value
 
-
-
-== Model Inputs of a Component
-
-Model inputs give a Component two-way binding ability. We can use `[(myProperty)]` to read and write a property of a component.
-
-The Signal Model inputs are writable.  You can call `set()` and `update()`.
+You can transform the input into other format when you define a signal input in the child component.
 
 [source TypeScript]
 ----
-import {Component, model, input} from '@angular/core';
+name = input('John', {
+  alias: 'nickname',
+  transform: (value: string) =>
+    (value === 'John' ? 'Johnny' : 'Tommy') as string,
+});
+----
 
-@Component({...})
-export class Party {
-  // a standard property
-  where = input<string>("Lakeside Hotel");
-  // a model property
-  canceled = model(false);
 
-  toggle() {
-    // While standard inputs are read-only, you can write directly to model inputs.
-    this.canceled.set(!this.canceled());
+== Model Inputs
+
+Model inputs give a Component two-way binding ability. We can use `[(myProperty)]` to read and write a property of a component.
+
+The model inputs are writable.  You can call `set()` and `update()`.
+
+The signal of age changes in both parent and child components when it is updated in the child component in the following code.
+
+.Child component with model property
+[source TypeScript]
+----
+@Component({
+  selector: 'app-signal-input-child',
+  standalone: true,
+  imports: [MatButtonModule],
+  template: `
+    <p>Signal Input Child Component</p>
+    <div>
+      Age in child comp: <b>{{ age() }}</b>
+    </div>
+    <div>
+      <button mat-flat-button color="primary" (click)="increaseAge()">
+        Increase
+      </button>
+    </div>
+  `,
+})
+export class SignalInputChildComponent {
+  age = model(20);
+  increaseAge() {
+    this.age.update((val) => val + 1);
   }
 }
 ----
+
+.Parent component
+[source TypeScript]
+----
+@Component({
+  selector: 'app-signal-input-parent',
+  standalone: true,
+  imports: [SignalInputChildComponent, MatButtonModule],
+  template: `
+    <p>Signal Input Parent Component</p>
+    <div>
+      Age in parent comp: {{ age() }}
+      <!-- display signal value -->
+      <app-signal-input-child [(age)]="age" />
+    </div>
+  `,
+  styles: [],
+})
+export class SignalInputParentComponent {
+  name = signal('John');
+  age = signal(0);
+
+  onClick() {
+    this.name.update((v) => (v === 'John' ? 'Tom' : 'John'));
+  }
+}
+----
+
+== New `output()` API
+
+The new `output()` API is a new way to define an output. We can totally replace the old `@Output()` annotation with the new `output()`. It's more type-safer.
+
+Here is how to define a output with `output()`
+
+.Child component with model property
+[source TypeScript]
+----
+@Component({
+  selector: 'app-signal-output-child',
+  standalone: true,
+  imports: [MatButtonModule],
+  template: `
+    <p>Signal Output Child Component</p>
+    <div>
+      Name: <b>{{ user.name }}</b>
+    </div>
+    <div>
+      Age: <b>{{ user.age }}</b>
+    </div>
+    <div>
+      <button mat-flat-button color="primary" (click)="onDelete()">
+        Delete
+      </button>
+    </div>
+  `,
+})
+export class SignalOutputChildComponent {
+  @Input({ required: true })
+  user!: User;
+  deleteUser = output<User>();
+
+  onDelete() {
+    this.deleteUser.emit(this.user);
+  }
+}
+----
+
+.Parent component
+[source TypeScript]
+----
+@Component({
+  selector: 'app-signal-output-parent',
+  standalone: true,
+  imports: [SignalOutputChildComponent, MatButtonModule],
+  template: `
+    <p>Signal Output Parent Component</p>
+    <div>
+      <app-signal-output-child
+        [user]="user"
+        (deleteUser)="onDeleteUser($event)"
+      />
+    </div>
+  `,
+  styles: [],
+})
+export class SignalOutputParentComponent {
+  user: User = {
+    name: 'John',
+    age: 20,
+  };
+
+  onDeleteUser(user: User) {
+    console.log(user);
+  }
+}
+----
+
+=== RxJS Interoperability
+
+As we can see from the code, the new output() API is not signal-based.  But we can use `outputFromObservable()` to generate output from Observable.
+
+[source TypeScript]
+----
+  import { outputFromObservable } from '@angular/core/rxjs-interop';
+  ....
+  // deleteUser = output<User>();
+  deleteUser = outputFromObservable<User>(of({
+    name: 'John',
+    age: 20
+  }))
+
+----
+
+Vise versa, we can convert an output into an observable like this:
+
+[source TypeScript]
+----
+import { outputToObservable } from '@angular/core/rxjs-interop';
+....
+deleteUser = output<User>();
+deleteUserObservable$ = outputToObservable(this.deleteUser);
+----
+
+== Summary
+
+We explained the new `input()`, `output()`, and `model()` API.  
+
+They are more understandable, more type-safer, and more powerful by using signal APIs.
+
+I highly recommend to use the new API in your Angular applications.
