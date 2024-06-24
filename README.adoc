@@ -1,0 +1,6 @@
+= Chuanbao's Blog
+
+This is the content repository of my blog. I used the following tools.
+
+* https://docs.asciidoctor.org/asciidoc/latest/[AsciiDoc]: A plain text markup language for writing technical content. Which is better than Markdown.
+* https://docs.antora.org/antora/latest/[Antora]: Document site generator from multi-repository of document.
