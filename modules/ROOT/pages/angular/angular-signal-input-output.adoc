@@ -1,10 +1,12 @@
 = Angular Signal Input, Output, and Model
 
-Angular use `@Input()` annotation to define a property to allow the parent component passes a value to the child component. 
+Angular use `@Input()` and `@Output()` to define the interface between the parent and child components.
+
+The `@Input()` annotation defines a property to allow the parent component passes a value to the child component. 
 
 The `@Output()` annotation expose an event of the child component.  The parent component can specify a callback function to react when the event happens in the child component.
 
-Angular induced Signal type of input and output after the Signal API was introduced. Signal input and output has all features that regular Signal has. 
+Angular induced Signal type of input, model, and output after the Signal API was introduced. They are more understandable, more type-safe, and powerful.
 
 == Signal Inputs
 
